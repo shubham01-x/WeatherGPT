@@ -1,0 +1,12 @@
+import { Router } from 'express';
+import { coordinates, dateRange } from '../utils/validation.js';
+import { currentWeather, forecastWeather, historicalWeather, airQuality, geocode, reverseGeocode } from '../services/weather.service.js';
+const router=Router();
+const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
+router.get('/current',wrap(async(req,res)=>res.json(await currentWeather(coordinates(req.query)))));
+router.get('/forecast',wrap(async(req,res)=>res.json(await forecastWeather(coordinates(req.query)))));
+router.get('/historical',wrap(async(req,res)=>{const c=coordinates(req.query),d=dateRange(req.query.startDate,req.query.endDate);res.json(await historicalWeather(c,d));}));
+router.get('/air-quality',wrap(async(req,res)=>res.json(await airQuality(coordinates(req.query)))));
+router.get('/geocode',wrap(async(req,res)=>res.json(await geocode(req.query.q))));
+router.get('/reverse-geocode',wrap(async(req,res)=>res.json(await reverseGeocode(coordinates(req.query)))));
+export default router;

@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { coordinates, dateRange } from '../utils/validation.js';
+import { earthquakes, globalEvents, nearbyEvents, historicalEvents } from '../services/disaster.service.js';
+const router=Router();const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
+router.get('/earthquakes',wrap(async(req,res)=>{const c=coordinates(req.query);res.json(await earthquakes({...c,radiusKm:req.query.radiusKm,startDate:req.query.startDate,endDate:req.query.endDate,minMagnitude:req.query.minMagnitude}));}));
+router.get('/global',wrap(async(_req,res)=>res.json(await globalEvents())));
+router.get('/nearby',wrap(async(req,res)=>{const c=coordinates(req.query);res.json(await nearbyEvents(c,Math.min(Number(req.query.radiusKm)||100,20000)));}));
+router.get('/historical',wrap(async(req,res)=>{const c=coordinates(req.query),d=dateRange(req.query.startDate,req.query.endDate);res.json(await historicalEvents(c,Math.min(Number(req.query.radiusKm)||500,20000),d.startDate,d.endDate));}));
+router.get('/alerts',wrap(async(_req,res)=>res.json({events:await globalEvents(),officialSources:[{name:'NDMA SACHET',url:'https://sachet.ndma.gov.in/'},{name:'India Meteorological Department',url:'https://mausam.imd.gov.in/'},{name:'IMD API portal',url:'https://api.imd.gov.in/public/'}],notice:'This endpoint does not mirror all official Indian warnings. Follow the linked official portals for actionable alerts.'})));
+export default router;

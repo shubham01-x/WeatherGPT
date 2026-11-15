@@ -1,0 +1,30 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import weatherRoutes from './routes/weather.routes.js';
+import disasterRoutes from './routes/disaster.routes.js';
+import aiRoutes from './routes/ai.routes.js';
+import { notFound, errorHandler } from './middleware/errors.js';
+const app = express();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(cors({ origin: process.env.NODE_ENV === 'production' ? (process.env.CLIENT_ORIGIN || false) : true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(morgan('dev'));
+app.use('/api', rateLimit({ windowMs: 60_000, limit: 90, standardHeaders: 'draft-7', legacyHeaders: false }));
+app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'WeatherGPT API', timestamp: new Date().toISOString() }));
+app.use('/api/weather', weatherRoutes);
+app.use('/api/disasters', disasterRoutes);
+app.use('/api/ai', aiRoutes);
+if (process.env.NODE_ENV === 'production') {
+  const dist = path.resolve(__dirname, '../../client/dist');
+  app.use(express.static(dist));
+  app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+}
+app.use(notFound);
+app.use(errorHandler);
+export default app;
